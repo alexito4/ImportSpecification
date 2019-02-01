@@ -1,3 +1,3 @@
 # ImportSpecification
 
-A description of this package.
+Extracted ImportSpecification from [swift-sh](https://github.com/mxcl/swift-sh).
