@@ -1,11 +1,15 @@
 import Foundation
-import Path
 
 extension ImportSpecification {
     
-    public static func parse(_ path: Path) throws -> [ImportSpecification] {
-        let reader = try StreamReader(path: path)
+    /// reader is gonna be consumed.
+    public static func parse(reader: StreamReader) throws -> [ImportSpecification] {
         var tee = [String]()
+        tee = reader.reduce(into: tee, { $0.append($1) })
+        return try ImportSpecification.parse(tee.joined(separator: "\n"))
+    }
+    
+    public static func parse(_ script: String) throws -> [ImportSpecification] {
         var dependencies = [ImportSpecification]()
         
         // We are not a thorough parser, and that would be inefficient.
@@ -18,7 +22,7 @@ extension ImportSpecification {
         // should just use SourceKitten and do a proper parse
         //TODO well also could have an import structure where is split
         // over multiple lines with semicolons. So maybe parser?
-        for (index, line) in reader.enumerated() {
+        for (index, line) in script.split(separator: "\n").enumerated() {
             if index == 0, line.hasPrefix("#!") { continue }
             
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -26,8 +30,6 @@ extension ImportSpecification {
             if trimmed.hasPrefix("import") || trimmed.hasPrefix("@testable"), let parse = ImportSpecification(line: trimmed) {
                 dependencies.append(parse)
             }
-            
-            tee.append(line)
         }
         
         return dependencies

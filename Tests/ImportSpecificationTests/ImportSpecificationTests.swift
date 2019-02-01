@@ -34,6 +34,13 @@ final class ImportSpecificationTests: XCTestCase {
         }
     }
     
+    func testTrailingWhitespace() {
+        let a = ImportSpecification(line: "import Foo // @mxcl ~> 1.0 ")
+        XCTAssertEqual(a?.dependencyName, "mxcl/Foo")
+        XCTAssertEqual(a?.constraint, .upToNextMajor(from: .one))
+        XCTAssertEqual(a?.importName, "Foo")
+    }
+    
     func testWigglyArrow() {
         let a = ImportSpecification(line: "import Foo // @mxcl ~> 1.0")
         XCTAssertEqual(a?.dependencyName, "mxcl/Foo")
@@ -115,6 +122,7 @@ final class ImportSpecificationTests: XCTestCase {
         ("testExact", testExact),
         ("testMinimalSpaces", testMinimalSpaces),
         ("testMoreSpaces", testMoreSpaces),
+        ("testTrailingWhitespace", testTrailingWhitespace),
         ("testWigglyArrow", testWigglyArrow),
         ("testMissingVersion", testMissingVersion),
         ("testMultipleDependenciesFullySpecified", testMultipleDependenciesFullySpecified),
@@ -147,64 +155,11 @@ private func testScript(_ script: String, line: UInt = #line, body: ([ImportSpec
         try Path.mktemp { tmpdir -> Void in
             let file = tmpdir.join("ImportSpecification-test-\(#line).swift")
             try script.write(to: file)
-            
-            let dependencies = try ImportSpecification.parse(file)
+            let reader = try StreamReader(path: file)
+            let dependencies = try ImportSpecification.parse(reader: reader)
             try body(dependencies)
         }
     } catch {
         XCTFail("\(error)", line: line)
-    }
-}
-
-// TODO: Shouldn't this be part of the Path package?
-class TemporaryDirectory {
-    let url: URL
-    var path: Path { return Path(string: url.path) }
-    
-    /**
-     Creates a new temporary directory.
-     
-     The directory is recursively deleted when this object deallocates.
-     
-     If you need a temporary directory on a specific volume use the `appropriateFor`
-     parameter.
-     
-     - Important: If you are moving a file, ensure to use the `appropriateFor`
-     parameter, since it is volume aware and moving the file across volumes will take
-     exponentially longer!
-     - Important: The `appropriateFor` parameter does not work on Linux.
-     - Parameter appropriateFor: The temporary directory will be located on this
-     volume.
-     */
-    init(appropriateFor: URL? = nil) throws {
-        #if !os(Linux)
-        let appropriate: URL
-        if let appropriateFor = appropriateFor {
-            appropriate = appropriateFor
-        } else if #available(OSX 10.12, iOS 10, tvOS 10, watchOS 3, *) {
-            appropriate = FileManager.default.temporaryDirectory
-        } else {
-            appropriate = URL(fileURLWithPath: NSTemporaryDirectory())
-        }
-        url = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: appropriate, create: true)
-        #else
-        let envs = ProcessInfo.processInfo.environment
-        let env = envs["TMPDIR"] ?? envs["TEMP"] ?? envs["TMP"] ?? "/tmp"
-        let dir = Path.root/env/"swift-sh.XXXXXX"
-        var template = [UInt8](dir.string.utf8).map({ Int8($0) }) + [Int8(0)]
-        guard mkdtemp(&template) != nil else { throw CocoaError.error(.featureUnsupported) }
-        url = URL(fileURLWithPath: String(cString: template))
-        #endif
-    }
-    
-    deinit {
-        _ = try? FileManager.default.removeItem(at: url)
-    }
-}
-
-extension Path {
-    static func mktemp<T>(body: (Path) throws -> T) throws -> T {
-        let tmp = try TemporaryDirectory()
-        return try body(tmp.path)
     }
 }
