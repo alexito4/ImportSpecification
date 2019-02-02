@@ -155,8 +155,7 @@ private func testScript(_ script: String, line: UInt = #line, body: ([ImportSpec
         try Path.mktemp { tmpdir -> Void in
             let file = tmpdir.join("ImportSpecification-test-\(#line).swift")
             try script.write(to: file)
-            let reader = try StreamReader(path: file)
-            let dependencies = try ImportSpecification.parse(reader: reader)
+            let dependencies = try ImportSpecification.parse(script)
             try body(dependencies)
         }
     } catch {

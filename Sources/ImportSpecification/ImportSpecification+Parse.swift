@@ -2,13 +2,6 @@ import Foundation
 
 extension ImportSpecification {
     
-    /// reader is gonna be consumed.
-    public static func parse(reader: StreamReader) throws -> [ImportSpecification] {
-        var tee = [String]()
-        tee = reader.reduce(into: tee, { $0.append($1) })
-        return try ImportSpecification.parse(tee.joined(separator: "\n"))
-    }
-    
     public static func parse(_ script: String) throws -> [ImportSpecification] {
         var dependencies = [ImportSpecification]()
         
