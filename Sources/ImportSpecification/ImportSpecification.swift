@@ -6,7 +6,7 @@ public enum Constraint {
 }
 
 public struct ImportSpecification {
-    let importName: String
-    let dependencyName: String
-    let constraint: Constraint
+    public let importName: String
+    public let dependencyName: String
+    public let constraint: Constraint
 }
